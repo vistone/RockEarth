@@ -1,0 +1,14 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e7]: "FPS:"
+        - generic [ref=e8]: "60"
+      - generic [ref=e10]:
+        - generic [ref=e11]: "Nodes:"
+        - generic [ref=e12]: "1"
+    - generic:
+      - paragraph: 🖱️ 左键拖拽旋转 · 右键拖拽平移 · 滚轮缩放
+  - button "Open Next.js Dev Tools" [ref=e20] [cursor=pointer]:
+    - img [ref=e21]
+  - alert [ref=e24]
