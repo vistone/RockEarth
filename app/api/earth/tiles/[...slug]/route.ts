@@ -91,6 +91,7 @@ export async function GET(
                 return NextResponse.json({ error: `Node not found or empty: path=${path}` }, { status: 404 });
             }
 
+            console.log(`[GLB] generating for path=${path} epoch=${epoch}`);
             const glbBuffer = nodeToGLB(node);
             if (!glbBuffer) {
                 return NextResponse.json({ error: `Failed to compile GLB for path=${path}` }, { status: 404 });
@@ -101,7 +102,7 @@ export async function GET(
                 headers: {
                     'Content-Type': 'model/gltf-binary',
                     'Access-Control-Allow-Origin': '*',
-                    'Cache-Control': 'public, max-age=31536000, immutable'
+                    'Cache-Control': 'no-cache'
                 }
             });
         }

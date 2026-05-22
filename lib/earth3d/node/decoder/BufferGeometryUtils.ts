@@ -5,46 +5,26 @@ export class BufferGeometryUtils {
      *
      * Google Earth uses triangle strips where degenerate triangles (triangles
      * with two or more identical vertex indices) act as separators between
-     * separate strip segments. These degenerate triangles must be skipped,
-     * otherwise they produce holes ("洞洞") in the rendered mesh.
+     * separate strip segments. We preserve them in the output because they
+     * maintain the correct winding parity across the strip; GPU rasterization
+     * automatically drops zero-area degenerate triangles without producing
+     * visual artefacts.
      */
     static toTriangleStripDrawMode(indexes: Uint16Array): Uint16Array {
-        const numberOfPotentialTriangles = indexes.length - 2;
+        const numberOfTriangles = indexes.length - 2;
+        const newIndices = new Uint16Array(numberOfTriangles * 3);
 
-        // First pass: count valid (non-degenerate) triangles
-        let validCount = 0;
-        for (let i = 0; i < numberOfPotentialTriangles; i++) {
-            const a = indexes[i];
-            const b = indexes[i + 1];
-            const c = indexes[i + 2];
-            if (a !== b && b !== c && a !== c) {
-                validCount++;
-            }
-        }
-
-        // Second pass: fill output with only valid triangles, applying strip winding
-        const newIndices = new Uint16Array(validCount * 3);
-        let j = 0;
-        for (let i = 0; i < numberOfPotentialTriangles; i++) {
-            const a = indexes[i];
-            const b = indexes[i + 1];
-            const c = indexes[i + 2];
-            if (a === b || b === c || a === c) {
-                // Skip degenerate triangle (strip separator)
-                continue;
-            }
-
+        for (let i = 0, j = 0; i < numberOfTriangles; i++, j += 3) {
             if (i % 2 === 0) {
-                newIndices[j]     = a;
-                newIndices[j + 1] = b;
-                newIndices[j + 2] = c;
+                newIndices[j] = indexes[i];
+                newIndices[j + 1] = indexes[i + 1];
+                newIndices[j + 2] = indexes[i + 2];
             } else {
                 // Odd strips reverse winding to maintain consistent face normals
-                newIndices[j]     = c;
-                newIndices[j + 1] = b;
-                newIndices[j + 2] = a;
+                newIndices[j] = indexes[i + 2];
+                newIndices[j + 1] = indexes[i + 1];
+                newIndices[j + 2] = indexes[i];
             }
-            j += 3;
         }
 
         return newIndices;

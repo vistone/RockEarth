@@ -32,8 +32,17 @@ export default function EarthCanvas() {
         scene.background = new THREE.Color(0x0000ff);
         sceneRef.current = scene;
 
+        // Add lights so PBR materials in loaded GLB tiles are visible
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 2.0);
+        dirLight.position.set(1, 0.5, 1).normalize().multiplyScalar(1e7);
+        scene.add(dirLight);
+
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 100000000);
-        camera.position.set(-2677035.212674, -4303102.585957, 3861162.740689);
+        // Position camera above Earth so the globe is visible in the frustum
+        camera.position.set(0, 0, 12000000);
         camera.lookAt(0, 0, 0);
         cameraRef.current = camera;
 
@@ -48,6 +57,8 @@ export default function EarthCanvas() {
         // Setup standard 3D Tiles renderer loading our standard tileset API endpoint
         const tilesRenderer = new TilesRenderer("/api/earth/tileset.json");
         tilesRenderer.errorTarget = 6;
+        tilesRenderer.loadSiblings = true;
+        tilesRenderer.maxDepth = 30;
         tilesRendererRef.current = tilesRenderer;
         (window as any)._tilesRenderer = tilesRenderer;
 

@@ -127,7 +127,8 @@ export function bulkToTileset(bulk: BulkData, rootPath: string, rootEpoch: numbe
 
     return {
         asset: {
-            version: "1.0"
+            version: "1.0",
+            gltfUpAxis: "z"
         },
         geometricError: rootGeometricError,
         root: rootTile
@@ -138,6 +139,7 @@ export function bulkToTileset(bulk: BulkData, rootPath: string, rootEpoch: numbe
  * Convert decoded NodeData into standard glTF 2.0 Binary (GLB) file buffer.
  */
 export function nodeToGLB(nodeData: NodeData): Buffer | null {
+    console.log("[nodeToGLB] called, meshes:", nodeData.data.meshes?.length ?? 0);
     if (!nodeData.data.meshes || nodeData.data.meshes.length === 0) {
         return null;
     }
@@ -195,7 +197,10 @@ export function nodeToGLB(nodeData: NodeData): Buffer | null {
     const matrixValues = nodeData.data.matrix_globe_from_mesh ?? [];
     let matrix: number[] | undefined;
     if (matrixValues.length === 16) {
-        matrix = [...matrixValues];
+        // Google Earth's protobuf stores matrix_globe_from_mesh in column-major order.
+        // glTF node matrix also expects column-major order.
+        // So we pass the values directly without transposing.
+        matrix = matrixValues.slice();
     }
 
     gltf.nodes.push({
@@ -215,6 +220,9 @@ export function nodeToGLB(nodeData: NodeData): Buffer | null {
         const indexCount = meshe.indices.length;
 
         // 1. Positions Accessor
+        // Vertices are Uint8Array with quantized values in [0, 255] range.
+        // The matrix_globe_from_mesh transforms these local mesh coordinates
+        // to ECEF globe coordinates - it encodes scale, rotation, and translation.
         let minX = Infinity, minY = Infinity, minZ = Infinity;
         let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
         const floatVertices = new Float32Array(meshe.vertices.length);
@@ -252,7 +260,8 @@ export function nodeToGLB(nodeData: NodeData): Buffer | null {
         });
 
         // 2. UVs Accessor
-        // Decode and normalize UV coordinates to standard Float32Array [0, 1]
+        // Pre-apply uv_offset and uv_scale to produce standard [0,1] texture coordinates
+        // for glTF, since there is no custom shader to do this at render time.
         const stdUvs = new Float32Array(vertexCount * 2);
         const uv_offset = meshe.uv_offset ?? { x: 0.5, y: 0.5 };
         const uv_scale = meshe.uv_scale ?? { x: 1.0, y: 1.0 };
